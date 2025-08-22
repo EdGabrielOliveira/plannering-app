@@ -1,3 +1,4 @@
+import { useRegister } from "@/api/hooks/useRegister";
 import ButtonComponent from "@/components/Button/ButtonComponent";
 import InputComponent from "@/components/Input/InputComponent";
 import ScreenContainer from "@/components/ScreenContainer";
@@ -11,21 +12,31 @@ import * as yup from "yup";
 
 export default function RegisterPage() {
   const colors = useThemeColors();
+  const { mutate, isPending, isError, error } = useRegister();
 
-  const useSchema = yup.object().shape({
-    name: yup
-      .string()
-      .max(60, "Nome deve ter no máximo 60 caracteres")
-      .min(10, "Nome deve ter no mínimo 10 caracteres")
-      .required("Nome é obrigatório")
-      .matches(/^[^\d]+$/, "O nome não pode conter números"),
+  const registerSchema = yup.object().shape({
+    nome: yup.string().min(2, "Nome deve ter pelo menos 2 caracteres").required("Nome é obrigatório"),
     email: yup.string().email("Email inválido").required("Email é obrigatório"),
-    password: yup.string().min(6, "Senha deve ter pelo menos 6 caracteres").required("Senha é obrigatória"),
-    confirmPassword: yup.string().oneOf([yup.ref("password"), undefined], "As senhas devem coincidir"),
+    senha: yup.string().min(6, "Senha deve ter pelo menos 6 caracteres").required("Senha é obrigatória"),
+    confirmarSenha: yup
+      .string()
+      .oneOf([yup.ref("senha")], "Senhas não coincidem")
+      .required("Confirme sua senha"),
   });
 
-  const handleSubmit = (values: { name: string; email: string; password: string; confirmPassword: string }) => {
-    console.log("Form values:", values);
+  const handleRegister = (values: { nome: string; email: string; senha: string; confirmarSenha: string }) => {
+    const { nome, email, senha } = values;
+    mutate(
+      { nome, email, senha },
+      {
+        onSuccess: (data) => {
+          if (data && data.success !== false) {
+            router.replace("/(tabs)");
+          }
+        },
+        onError: (err: any) => {},
+      },
+    );
   };
 
   return (
@@ -40,67 +51,86 @@ export default function RegisterPage() {
             />
           </View>
           <Text style={[styles.appName, { color: colors.primary }]}>Plannering</Text>
-          <Text style={[styles.welcomeText, { color: colors.text }]}>Faça login para acessar sua conta</Text>
+          <Text style={[styles.welcomeText, { color: colors.text }]}>Crie sua conta e comece a planejar</Text>
         </View>
 
         <Formik
-          initialValues={{ name: "", email: "", password: "", confirmPassword: "" }}
-          onSubmit={handleSubmit}
-          validationSchema={useSchema}
+          initialValues={{ nome: "", email: "", senha: "", confirmarSenha: "" }}
+          onSubmit={handleRegister}
+          validationSchema={registerSchema}
         >
-          {({ handleChange, handleBlur, handleSubmit, values, errors }) => (
+          {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
             <>
               <View style={styles.formSection}>
                 <InputComponent
-                  value={values.name}
-                  placeholder="Digite seu nome"
+                  value={values.nome}
+                  placeholder="Digite seu nome completo"
                   label="Nome"
-                  onChangeText={handleChange("name")}
-                  onBlur={handleBlur("name")}
+                  onChangeText={handleChange("nome")}
+                  onBlur={handleBlur("nome")}
                 />
-                {errors.name && <Text style={{ color: colors.error, fontSize: 12 }}>{errors.name}</Text>}
+                {touched.nome && errors.nome && (
+                  <Text style={{ color: colors.error, fontSize: 12 }}>{errors.nome}</Text>
+                )}
+
                 <InputComponent
                   value={values.email}
                   placeholder="Digite seu e-mail"
                   label="Email"
                   onChangeText={handleChange("email")}
                   onBlur={handleBlur("email")}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                 />
-                {errors.email && <Text style={{ color: colors.error, fontSize: 12 }}>{errors.email}</Text>}
+                {touched.email && errors.email && (
+                  <Text style={{ color: colors.error, fontSize: 12 }}>{errors.email}</Text>
+                )}
+
                 <InputComponent
-                  value={values.password}
+                  value={values.senha}
                   placeholder="Digite sua senha"
                   label="Senha"
-                  onChangeText={handleChange("password")}
-                  onBlur={handleBlur("password")}
+                  onChangeText={handleChange("senha")}
+                  onBlur={handleBlur("senha")}
+                  secureTextEntry
                 />
-                {errors.password && <Text style={{ color: colors.error, fontSize: 12 }}>{errors.password}</Text>}
+                {touched.senha && errors.senha && (
+                  <Text style={{ color: colors.error, fontSize: 12 }}>{errors.senha}</Text>
+                )}
+
                 <InputComponent
-                  value={values.confirmPassword}
+                  value={values.confirmarSenha}
                   placeholder="Confirme sua senha"
-                  label="Confirmar senha"
-                  onChangeText={handleChange("confirmPassword")}
-                  onBlur={handleBlur("confirmPassword")}
+                  label="Confirmar Senha"
+                  onChangeText={handleChange("confirmarSenha")}
+                  onBlur={handleBlur("confirmarSenha")}
+                  secureTextEntry
                 />
-                {errors.confirmPassword && (
-                  <Text style={{ color: colors.error, fontSize: 12 }}>{errors.confirmPassword}</Text>
+                {touched.confirmarSenha && errors.confirmarSenha && (
+                  <Text style={{ color: colors.error, fontSize: 12 }}>{errors.confirmarSenha}</Text>
                 )}
               </View>
+              {isError && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error?.message || "Erro ao criar conta. Tente novamente."}</Text>
+                </View>
+              )}
 
               {/* Botões */}
               <View style={styles.buttonSection}>
-                <ButtonComponent title="Criar conta" onPress={handleSubmit} />
+                <ButtonComponent
+                  title={isPending ? "Criando conta..." : "Criar conta"}
+                  onPress={handleSubmit}
+                  disabled={isPending}
+                />
                 <View style={styles.buttonSpacing} />
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
-                  <Text>Já possui uma conta?</Text>
-                  <ButtonComponent
-                    title="Entrar agora mesmo"
-                    variant="link"
-                    onPress={() => {
-                      router.push("/auth/login");
-                    }}
-                  />
-                </View>
+                <ButtonComponent
+                  title="Já tenho uma conta"
+                  variant="outline"
+                  onPress={() => {
+                    router.push("/auth/login");
+                  }}
+                />
               </View>
             </>
           )}
@@ -182,5 +212,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     opacity: 0.6,
+    lineHeight: 16,
+  },
+  errorContainer: {
+    backgroundColor: "rgba(255, 0, 0, 0.1)",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#ff0000",
+  },
+  errorText: {
+    color: "#ff0000",
+    fontSize: 14,
+    textAlign: "center",
+    fontWeight: "500",
   },
 });
