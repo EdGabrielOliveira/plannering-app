@@ -21,8 +21,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
       const authenticated = await AuthStorage.isAuthenticated();
 
       if (!authenticated) {
-        // Token inválido ou não existe - redirecionar para login
-        await AuthStorage.clear(); // Limpar dados inválidos
+        await AuthStorage.clear();
         router.replace("/auth/login");
         return;
       }
@@ -33,8 +32,6 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
       router.replace("/auth/login");
     }
   };
-
-  // Mostrar loading enquanto verifica autenticação
   if (isAuthenticated === null) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -42,8 +39,6 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
       </View>
     );
   }
-
-  // Se autenticado, renderizar filhos
   return <>{children}</>;
 }
 

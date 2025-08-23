@@ -12,9 +12,12 @@ export const AuthStorage = {
   async setRefreshToken(refreshToken: string): Promise<void> {
     await SecureStore.setItemAsync("refreshToken", refreshToken);
   },
-
   async getRefreshToken(): Promise<string | null> {
     return await SecureStore.getItemAsync("refreshToken");
+  },
+
+  async removeRefreshToken(): Promise<void> {
+    await SecureStore.deleteItemAsync("refreshToken");
   },
 
   async setUser(user: any): Promise<void> {
@@ -44,9 +47,13 @@ export const AuthStorage = {
     if (!refreshToken) return false;
 
     try {
-      const payload = JSON.parse(atob(refreshToken.split(".")[1]));
-      const now = Date.now() / 1000;
-      return payload.exp > now;
+      if (refreshToken.includes(".")) {
+        const payload = JSON.parse(atob(refreshToken.split(".")[1]));
+        const now = Date.now() / 1000;
+        return payload.exp > now;
+      } else {
+        return true;
+      }
     } catch {
       return false;
     }
@@ -60,19 +67,19 @@ export const AuthStorage = {
 
   async isAuthenticated(): Promise<boolean> {
     const token = await this.getToken();
-    const refreshToken = await this.getRefreshToken();
+    if (!token) return false;
 
-    if (token && (await this.isTokenValid())) {
+    if (await this.isTokenValid()) {
       return true;
     }
 
+    const refreshToken = await this.getRefreshToken();
     if (refreshToken && (await this.isRefreshTokenValid())) {
       return true;
     }
 
     return false;
   },
-
   async setTokens(accessToken: string, refreshToken: string): Promise<void> {
     await this.setToken(accessToken);
     await this.setRefreshToken(refreshToken);

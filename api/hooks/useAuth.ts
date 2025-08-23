@@ -10,6 +10,7 @@ export const useAuth = () => {
   const checkAuth = async () => {
     try {
       setIsLoading(true);
+
       const authenticated = await AuthStorage.isAuthenticated();
       setIsAuthenticated(authenticated);
 

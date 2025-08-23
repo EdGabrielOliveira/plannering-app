@@ -1,5 +1,6 @@
 import { AuthStorage } from "@/api/auth/storage";
 import ButtonComponent from "@/components/Button/ButtonComponent";
+import Logo from "@/components/LogoComponent";
 import ScreenContainer from "@/components/ScreenContainer";
 import { useThemeColors } from "@/hooks/useThemeColors";
 
@@ -46,11 +47,8 @@ export default function Homepage() {
       <View style={styles.container}>
         {/* Header Section */}
         <View style={styles.headerSection}>
-          <View style={[styles.logoCircle, { backgroundColor: colors.primary + "20", alignItems: "center" }]}>
-            <Image
-              source={require("../assets/images/logo.png")}
-              style={[styles.featureIcon, { width: 96, height: 96, tintColor: colors.text }]}
-            />
+          <View>
+            <Logo />
           </View>
           <Text style={[styles.welcomeText, { color: colors.text }]}>Bem-vindo ao</Text>
           <Text style={[styles.appName, { color: colors.primary }]}>Plannering</Text>

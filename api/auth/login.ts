@@ -1,7 +1,15 @@
 import { fetchWithoutAuth } from "../secure/fetch";
 import { AuthStorage } from "./storage";
 
-export const login = async ({ email, senha }: { email: string; senha: string }) => {
+export const login = async ({
+  email,
+  senha,
+  saveRefreshToken = true,
+}: {
+  email: string;
+  senha: string;
+  saveRefreshToken?: boolean;
+}) => {
   try {
     const response = await fetchWithoutAuth("/auth/login", {
       method: "POST",
@@ -14,18 +22,20 @@ export const login = async ({ email, senha }: { email: string; senha: string }) 
     const data = response.data ?? response;
 
     if (data && data.access_token) {
-      if (data.refresh_token) {
-        await AuthStorage.setTokens(data.access_token, data.refresh_token);
-      } else {
-        await AuthStorage.setToken(data.access_token);
-      }
-      await AuthStorage.setUser(data.user);
+      await AuthStorage.setToken(data.access_token);
 
+      if (saveRefreshToken && data.refresh_token) {
+        await AuthStorage.setRefreshToken(data.refresh_token);
+      } else {
+        await AuthStorage.removeRefreshToken();
+      }
+
+      await AuthStorage.setUser(data.user);
       return {
         success: true,
         user: data.user,
         token: data.access_token,
-        refreshToken: data.refresh_token,
+        refreshToken: saveRefreshToken ? data.refresh_token : undefined,
         message: "Login realizado com sucesso",
       };
     } else if (data) {

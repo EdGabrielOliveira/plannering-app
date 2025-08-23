@@ -1,20 +1,29 @@
 import { useLogin } from "@/api/hooks/useLogin";
 import ButtonComponent from "@/components/Button/ButtonComponent";
+import CheckboxComponent from "@/components/CheckboxComponent";
 import InputComponent from "@/components/Input/InputComponent";
 import LoadingComponent from "@/components/LoadingComponent";
+import LogoComponent from "@/components/LogoComponent";
 import ScreenContainer from "@/components/ScreenContainer";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
-import { Image } from "expo-image";
 import { router } from "expo-router";
 import { Formik } from "formik";
 import React from "react";
-import { StyleSheet, Switch, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import * as yup from "yup";
 
 export default function LoginPage() {
-  const [isChecked, setIsChecked] = React.useState(false);
+  const [keepConnected, setKeepConnected] = React.useState(false);
   const colors = useThemeColors();
   const { mutate, isPending, isError, error } = useLogin();
+  const { isAuthenticated } = useAuthContext();
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated]);
 
   const loginSchema = yup.object().shape({
     email: yup.string().email("Email inválido").required("Email é obrigatório"),
@@ -22,14 +31,7 @@ export default function LoginPage() {
   });
 
   const handleLogin = (values: { email: string; senha: string }) => {
-    mutate(values, {
-      onSuccess: (data) => {
-        if (data && data.success !== false) {
-          router.replace("/(tabs)");
-        }
-      },
-      onError: () => {},
-    });
+    mutate({ ...values, saveRefreshToken: keepConnected });
   };
 
   if (isPending) {
@@ -47,11 +49,8 @@ export default function LoginPage() {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.headerSection}>
-          <View style={[styles.logoCircle, { backgroundColor: colors.primary + "20" }]}>
-            <Image
-              source={require("../../assets/images/logo.png")}
-              style={[{ width: 64, height: 64, tintColor: colors.primary }]}
-            />
+          <View>
+            <LogoComponent />
           </View>
           <Text style={[styles.appName, { color: colors.primary }]}>Plannering</Text>
           <Text style={[styles.welcomeText, { color: colors.text }]}>Faça login para acessar sua conta</Text>
@@ -94,20 +93,8 @@ export default function LoginPage() {
               )}
 
               <View style={styles.optionsRow}>
-                <View style={styles.switchRow}>
-                  <Switch
-                    value={isChecked}
-                    onValueChange={setIsChecked}
-                    trackColor={{ false: colors.secondary, true: colors.primary }}
-                    thumbColor={isChecked ? colors.primary : colors.secondary}
-                  />
-                  <Text style={styles.switchLabel}>Manter-se conectado</Text>
-                </View>
-                <ButtonComponent
-                  title="Esqueceu sua senha?"
-                  variant="link"
-                  onPress={() => router.push("/auth/forgot-senha")}
-                />
+                <CheckboxComponent value={keepConnected} onValueChange={setKeepConnected} label="Manter-se conectado" />
+                <ButtonComponent title="Esqueceu sua senha?" variant="link" onPress={() => router.push("/(tabs)")} />
               </View>
 
               {/* Botões */}
@@ -146,16 +133,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 18,
     gap: 8,
-  },
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  switchLabel: {
-    fontSize: 14,
-    marginLeft: 6,
-    opacity: 0.8,
   },
   container: {
     flex: 1,

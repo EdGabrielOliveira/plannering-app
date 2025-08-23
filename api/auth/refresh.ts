@@ -1,4 +1,5 @@
 import { fetchWithoutAuth } from "../secure/fetch";
+import { SessionManager } from "./sessionManager";
 import { AuthStorage } from "./storage";
 
 export interface RefreshTokenResponse {
@@ -36,6 +37,11 @@ export const ensureValidToken = async (): Promise<string> => {
     if (token) return token;
   }
 
+  const memoryToken = SessionManager.getMemoryToken();
+  if (memoryToken) {
+    return memoryToken;
+  }
+
   if (await AuthStorage.isRefreshTokenValid()) {
     try {
       const refreshResponse = await refreshToken();
@@ -46,6 +52,18 @@ export const ensureValidToken = async (): Promise<string> => {
     }
   }
 
+  const memoryRefreshToken = SessionManager.getMemoryRefreshToken();
+  if (memoryRefreshToken) {
+    try {
+      const refreshResponse = await refreshToken();
+      return refreshResponse.access_token;
+    } catch {
+      SessionManager.clearMemorySession();
+      throw new Error("Authentication expired. Please login again.");
+    }
+  }
+
   await AuthStorage.clear();
+  SessionManager.clearMemorySession();
   throw new Error("No valid authentication. Please login.");
 };
