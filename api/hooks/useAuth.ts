@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { ensureValidToken } from "../api/auth/refresh";
-import { AuthStorage } from "../api/auth/storage";
+import { ensureValidToken } from "../auth/refresh";
+import { AuthStorage } from "../auth/storage";
 
 export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
